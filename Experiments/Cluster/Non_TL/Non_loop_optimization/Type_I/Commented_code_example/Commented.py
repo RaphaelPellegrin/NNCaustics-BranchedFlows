@@ -269,12 +269,13 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         px_dot=diff(px,t,1)
         py_dot=diff(py,t,1)
 
-        # Loss
+        # Loss (8 or 9 components)
         L1=((x_dot-px)**2).mean()
         L2=((y_dot-py)**2).mean()
 
         # For the other components of the loss, we need the potential V
         # and its derivatives
+
         ## Partial derivatives of the potential (updated below)
         partial_x=0
         partial_y=0
@@ -298,16 +299,17 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
           H_0+=-(1/(2*math.pi))*math.exp(-(1/2)*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
           H_curr+=-(1/(2*math.pi))*torch.exp(-(1/2)*((x-mu_x)**2+(y-mu_y)**2))
 
-        ## We can finally set the energy for head l
+        # We can finally set the energy for head l
         H0_init[l]=H_0
 
-        # Other components of the loss
+        ## Other components of the loss
         L3=((px_dot+partial_x)**2).mean()
         L4=((py_dot+partial_y)**2).mean()
 
         # Nota Bene: L1,L2,L3 and L4 are Hamilton's equations
 
-        # Initial conditions taken into consideration into the loss
+        ### Initial conditions taken into consideration into the loss
+        
         ## Position
         L5=((x[0,0]-initial_x)**2)
         L6=((y[0,0]-initial_y)**2)
@@ -331,7 +333,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         # the loss for head l at epoch ne is stored
         losses_part[l][ne]=lossl_val
 
-        # the loss for head l
+        # the current loss for head l (used to save the best model)
         losses_part_current[l]=lossl_val
 
       # Backward
@@ -351,16 +353,22 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       # If it is the best loss so far, we update the best loss and saved the model
       if loss.item()<temp_loss:
         epoch_mini=ne+total_epochs
+        # make a copy of the network
         network2=copy.deepcopy(network)
+        # Save the loss
         temp_loss=loss.item()
+        # Save the indivudual losses of each head
         individual_losses_saved=losses_part_current
 
-        
+     
+  ### Printing the best loss.   
   try:
     print('The best loss we achieved was:', temp_loss, 'at epoch', epoch_mini)
   except UnboundLocalError:
     print("Increase number of epochs")
-
+  
+  ### Printing the maximum of the individual (ie for each head) losses at the best epoch
+  # individual loss that achieves the maximum (>=0)
   maxi_indi=0
   for g in range(number_of_heads):
     if individual_losses_saved[g]>maxi_indi:
@@ -368,14 +376,15 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   print('The maximum of the individual losses was {}'.format(maxi_indi))
   total_epochs+=num_epochs
 
-  ### Save network2 here (to train again in the next cell) ######################
+  # TO CHECK
+  ##################### Save network2 here (to train again) ######################
   torch.save({'model_state_dict': network2.state_dict(), 'loss':temp_loss,  
               'epoch':epoch_mini, 'optimizer_state_dict':optimizer.state_dict(),
               'total_epochs': total_epochs},PATH)
   ###############################################################################
 
 
-  ########## Saving to a file  #####################################
+  ####################### Saving to a file  ######################################
   # Saving the network
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
   'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -386,12 +395,12 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(network2.state_dict(),f)
   f.close()
-  #################################################################
+  ################################################################################
 
   # Forward pass (network2 is the best network now)
   d2=network2(t)
 
-  ########## Saving to a file  #####################################
+  ########################## Saving to a file  #####################################
   # Saving the loss
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
   'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -413,7 +422,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(losses_part,f)
   f.close()
-  #################################################################
+  #################################################################################
 
   # Now plot the individual trajectories and the individual losses
   for m in range(number_of_heads):
@@ -426,7 +435,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     # The loss
     loss_=losses_part[m]
     
-    ########## Saving to a file  #####################################
+    ################################## Saving to a file  #####################################
     # Saving the trajectories
     filename = 'Head_'+str(m)+'Initial_x_'+str(initial_x)+'final_t_'+\
     str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -470,16 +479,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     f=open(filename,"wb")
     pickle.dump(uf.cpu().detach()[:,3],f)
     f.close()
-    ################################################################# 
-
-  ######
+    ############################################################################################ 
 
 
-  # Initial conditions for y
-  Max=max(ic)
-  Min=min(ic)
 
-  ########## Saving ###########
+  ######################### Saving to a file ###################################################
   # Saving the initial conditions
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+\
   str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -490,7 +494,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(ic,f)
   f.close()
-  ############################# 
+  ############################################################################################## 
 
   # define the time
   Nt=500
@@ -498,11 +502,14 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
 
   # For the comparaison between the NN solution and the numerical solution,
   # we need to have the points at the same time
+
   # Set our tensor of times
   t_comparaison=torch.linspace(0,final_t,Nt,requires_grad=True).reshape(-1,1)
+
+  # forward pass through the best network for this comparaison
   d_comparaison=network2(t_comparaison)
 
-  ########## Saving ###########
+  ################################# Saving to a file ###########################################
   # Saving the initial conditions
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+\
   str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -513,7 +520,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(d_comparaison,f)
   f.close()
-  ############################# 
+  ############################################################################################## 
 
 
   # Initial posiiton and velocity
@@ -521,10 +528,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   # Initial y position
   Y0 = ic
 
-  Min=0
-  Max=50
-
-  # Maximum and mim=nimum x at final time
+  # Maximum and mimnimum x at final time (needed for plotting) 
+  # maximum_x is the maximum x value of the rays at final time
+  # maximum_y is the maximum y value of the rays 
+  # minimum_y is the minimum y value of the rays 
+  # min_final is the minimum x value of the rays at final time
   maximum_x=initial_x
   maximum_y=0
   minimum_y=0
@@ -532,6 +540,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
 
   for i in range(number_of_heads):
       print('The initial condition used is', Y0[i])
+      # Use the numerical integrator 
       x, y, px, py = rayTracing_general(t, x0, Y0[i], px0, py0, means_cell)
       if x[-1]>maximum_x:
         maximum_x=x[-1]
@@ -542,10 +551,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       if max(y)>maximum_y:
         maximum_y=max(y)
 
-      ########## Saving ###########
+      ################################### Saving to file ###################################
       # Saving the (numerical trajectories)
       filename = 'Head_'+str(i)+'Initial_x_'+str(initial_x)+\
-      'final_t_'+str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
+      'final_t_'+str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+\
+      str(width_heads)+\
       'energyconservation_'+str(energy_conservation)+\
       '_normclipping_'+str(norm_clipping)+'_'\
       'epochs_'+str(epochs_)+'grid_size_'+str(grid_size)+'TrajectoriesNumerical_x'+'.p'
@@ -555,7 +565,8 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       f.close()
       # Saving the (numerical trajectories)
       filename = 'Head_'+str(i)+'Initial_x_'+str(initial_x)+\
-      'final_t_'+str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
+      'final_t_'+str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+\
+      str(width_heads)+\
       'energyconservation_'+str(energy_conservation)+\
       '_normclipping_'+str(norm_clipping)+'_'\
       'epochs_'+str(epochs_)+'grid_size_'+str(grid_size)+'TrajectoriesNumerical_y'+'.p'
@@ -565,7 +576,8 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       f.close()
       # Saving the (numerical trajectories)
       filename = 'Head_'+str(i)+'Initial_x_'+str(initial_x)+\
-      'final_t_'+str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
+      'final_t_'+str(final_t)+'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+\
+      str(width_heads)+\
       'energyconservation_'+str(energy_conservation)+\
       '_normclipping_'+str(norm_clipping)+'_'\
       'epochs_'+str(epochs_)+'grid_size_'+str(grid_size)+'TrajectoriesNumerical_px'+'.p'
@@ -583,14 +595,14 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       f=open(filename,"wb")
       pickle.dump(py,f)
       f.close()
-      #############################
+      ######################################################################################
 
 
-
+  # Create the appropriate grid
   y1=np.linspace(minimum_y-1,maximum_y+1,500); x1= np.linspace(-1,maximum_x,500)
   x, y = np.meshgrid(x1, y1)
   
-  ########## Saving ###########
+  ############################## Saving to a file ####################################
   # Saving the means passed in
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
   'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -601,7 +613,6 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(means_cell,f)
   f.close()
-
   # Saving the mesh grid - x1
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
   'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -612,7 +623,6 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(x1,f)
   f.close()
-
   # Saving the mesh grid - y1
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
   'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -623,7 +633,6 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(y1,f)
   f.close()
-
   # Saving the mesh grid
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
   'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -635,8 +644,10 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   pickle.dump(x,f)
   pickle.dump(y,f)
   f.close()
-  #############################
+  ####################################################################################
 
+  # Building up the potential and its partial derivative
+  # Start at 0
   V=0
   Vx=0
   Vy=0
@@ -650,7 +661,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     muY1=i[1]
     V+=  - A*np.exp(- (( (x-muX1)**2 + (y-muY1)**2) / sig**2)/2) 
 
-  ########## Saving ###########
+  ################################ Saving to a file ################################
   # Saving the values of V on the grid
   filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+'alpha_'+\
    str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
@@ -661,7 +672,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(V,f)
   f.close()
-  ############################# 
+  ################################################################################# 
 
 if __name__=='__main__':
   # Run one simulation with the following parameters
