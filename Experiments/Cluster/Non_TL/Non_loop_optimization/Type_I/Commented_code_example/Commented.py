@@ -646,16 +646,18 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f.close()
   ####################################################################################
 
-  # Building up the potential and its partial derivative
+  # Building up the potential on the grid point to save it to a file
   # Start at 0
   V=0
-  Vx=0
-  Vy=0
 
+  # std of each Gaussian
   sig=1
+
+  # Scaling
   A_=1
   A=A_/(2*np.pi*sig**2)
 
+  # Update the potential
   for i in means_cell:
     muX1=i[0]
     muY1=i[1]
