@@ -101,7 +101,7 @@ plt.rc('font', **font)
 
 
 # Use below in the Scipy Solver   
-def f_general(u, t, means_Gaussians, lam=1, sig=1, A_=1):
+def f_general(u, t, means_Gaussians, lam=1, sig=2, A_=1):
     # unpack current values of u
     x, y, px, py = u  
 
@@ -124,7 +124,7 @@ def f_general(u, t, means_Gaussians, lam=1, sig=1, A_=1):
     return derivs
 
 # Scipy Solver   
-def rayTracing_general(t, x0, y0, px0, py0, means_Gaussians, lam=1, sig=1, A_=1):
+def rayTracing_general(t, x0, y0, px0, py0, means_Gaussians, lam=1, sig=2, A_=1):
     u0 = [x0, y0, px0, py0]
     # Call the ODE solver
     solPend = odeint(f_general, u0, t, args=(means_Gaussians, lam, sig, A_,))
@@ -259,16 +259,17 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
           mu_x=means[i][0]
           mu_y=means[i][1]
 
+          sig=2
           # Building the potential and updating the partial derivatives
-          potential=-(1/(2*math.pi))*torch.exp(-(1/2)*((x-mu_x)**2+(y-mu_y)**2))
+          potential=-(1/(2*math.pi*sig**2))*torch.exp(-(1/(2*sig**2))*((x-mu_x)**2+(y-mu_y)**2))
           # Partial wrt to x
-          partial_x+=-potential*(x-mu_x)
+          partial_x+=-potential*(x-mu_x)*(1/sigma*2)
           # Partial wrt to y
-          partial_y+=-potential*(y-mu_y)
+          partial_y+=-potential*(y-mu_y)*(1/sigma*2)
 
           # Updating the energy
-          H_0+=-(1/(2*math.pi))*math.exp(-(1/2)*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
-          H_curr+=-(1/(2*math.pi))*torch.exp(-(1/2)*((x-mu_x)**2+(y-mu_y)**2))
+          H_0+=-(1/(2*math.pi*sig**2))*math.exp(-(1/2*sig**2)*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
+          H_curr+=-(1/(2*math.pi*sig**2))*torch.exp(-(1/2*sig**2)*((x-mu_x)**2+(y-mu_y)**2))
 
         ## We can finally set the energy for head l
         H0_init[l]=H_0
@@ -613,7 +614,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   Vx=0
   Vy=0
 
-  sig=1
+  sig=2
   A_=1
   A=A_/(2*np.pi*sig**2)
 
