@@ -263,9 +263,9 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=20, means=[[7.51, 4.6], [8.78, 6.
           # Building the potential and updating the partial derivatives
           potential=-(1/(2*math.pi*sig**2))*torch.exp(-(1/(2*sig**2))*((x-mu_x)**2+(y-mu_y)**2))
           # Partial wrt to x
-          partial_x+=-potential*(x-mu_x)*(1/sigma*2)
+          partial_x+=-potential*(x-mu_x)*(1/sig*2)
           # Partial wrt to y
-          partial_y+=-potential*(y-mu_y)*(1/sigma*2)
+          partial_y+=-potential*(y-mu_y)*(1/sig*2)
 
           # Updating the energy
           H_0+=-(1/(2*math.pi*sig**2))*math.exp(-(1/2*sig**2)*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
