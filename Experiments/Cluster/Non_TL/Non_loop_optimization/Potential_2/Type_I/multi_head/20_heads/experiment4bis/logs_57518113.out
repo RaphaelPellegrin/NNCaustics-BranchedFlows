@@ -1,0 +1,46 @@
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: torch in /n/home09/rpellegrin/.local/lib/python3.8/site-packages (1.10.0)
+Requirement already satisfied: typing-extensions in /n/sw/eb/apps/centos7/Anaconda3/2020.11/lib/python3.8/site-packages (from torch) (3.7.4.3)
+No GPU found, using cpu
+The initial condition (for y) is 5.11
+The initial condition (for y) is 18.36
+The initial condition (for y) is 18.54
+The initial condition (for y) is 4.47
+The initial condition (for y) is 7.21
+The initial condition (for y) is 15.69
+The initial condition (for y) is 5.43
+The initial condition (for y) is 16.33
+The initial condition (for y) is 3.54
+The initial condition (for y) is 18.0
+The initial condition (for y) is 19.6
+The initial condition (for y) is 15.62
+The initial condition (for y) is 6.25
+The initial condition (for y) is 7.03
+The initial condition (for y) is 11.17
+The initial condition (for y) is 3.08
+The initial condition (for y) is 3.25
+The initial condition (for y) is 10.17
+The initial condition (for y) is 0.66
+The initial condition (for y) is 4.86
+The best loss we achieved was: 0.032209918218181005 at epoch 25190
+The maximum of the individual losses was 0.0036746701131070694
+The initial condition used is 5.11
+The initial condition used is 18.36
+The initial condition used is 18.54
+The initial condition used is 4.47
+The initial condition used is 7.21
+The initial condition used is 15.69
+The initial condition used is 5.43
+The initial condition used is 16.33
+The initial condition used is 3.54
+The initial condition used is 18.0
+The initial condition used is 19.6
+The initial condition used is 15.62
+The initial condition used is 6.25
+The initial condition used is 7.03
+The initial condition used is 11.17
+The initial condition used is 3.08
+The initial condition used is 3.25
+The initial condition used is 10.17
+The initial condition used is 0.66
+The initial condition used is 4.86

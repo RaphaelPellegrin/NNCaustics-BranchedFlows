@@ -1,0 +1,12 @@
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: torch in /n/home09/rpellegrin/.local/lib/python3.8/site-packages (1.10.0)
+Requirement already satisfied: typing-extensions in /n/sw/eb/apps/centos7/Anaconda3/2020.11/lib/python3.8/site-packages (from torch) (3.7.4.3)
+Using GPU
+The initial condition (for y) is 1.68
+The initial condition (for y) is 33.05
+The initial condition (for y) is 45.1
+The best loss we achieved was: 0.010773726265579514 at epoch 23890
+The maximum of the individual losses was 0.004003051080144379
+The initial condition used is 1.68
+The initial condition used is 33.05
+The initial condition used is 45.1

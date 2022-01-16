@@ -1,0 +1,3 @@
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** STEP 57388326.0 ON holygpu2c0711 CANCELLED AT 2022-01-11T00:47:02 DUE TO TIME LIMIT ***
+slurmstepd: error: *** JOB 57388326 ON holygpu2c0711 CANCELLED AT 2022-01-11T00:47:02 DUE TO TIME LIMIT ***
