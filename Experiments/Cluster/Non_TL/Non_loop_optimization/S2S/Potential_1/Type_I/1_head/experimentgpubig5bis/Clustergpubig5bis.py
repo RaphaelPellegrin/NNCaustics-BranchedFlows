@@ -204,11 +204,17 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   for k in range(number_of_heads):
     losses_part[k]=np.zeros(num_epochs)
 
+  #Seq2Seq
+  counter_seq2seq=1
+
   # For every epoch...
   for ne in range(num_epochs):
       optimizer.zero_grad()
       # Random sampling
-      t=torch.rand(grid_size,requires_grad=True)*final_t
+      # Seq2Seq
+      t=torch.rand(grid_size,requires_grad=True)*final_t*(counter_seq2seq/num_epochs)
+      # Seq2Seq
+      counter_seq2seq+=1
       t, ind=torch.sort(t)
       t[0]=0
       t=t.reshape(-1,1)
