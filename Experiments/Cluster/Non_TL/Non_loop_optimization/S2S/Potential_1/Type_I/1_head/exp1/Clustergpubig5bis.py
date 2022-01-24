@@ -248,6 +248,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         px_dot=diff(px,t,1)
         py_dot=diff(py,t,1)
 
+        # x=x_0+(1-torch.exp(-t))*head[:,0]
+        # y=y_0+(1-torch.exp(-t))*head[:,1]
+        # px=px_0+(1-torch.exp(-t))*head[:,1]
+        # py=py_0+(1-torch.exp(-t))*head[:,1]
+
         # Loss
         L1=((x_dot-px)**2).mean()
         L2=((y_dot-py)**2).mean()
@@ -331,6 +336,13 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       if loss.item()<temp_loss:
         epoch_mini=ne+total_epochs
         network2=copy.deepcopy(network)
+        temp_loss=loss.item()
+        individual_losses_saved=losses_part_current
+
+      # TO FINISH
+      if loss.item()<temp_loss and ne>0.9*num_epochs:
+        epoch_mini_3=ne+total_epochs
+        network3=copy.deepcopy(network)
         temp_loss=loss.item()
         individual_losses_saved=losses_part_current
 
