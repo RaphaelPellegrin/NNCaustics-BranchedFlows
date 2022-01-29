@@ -167,7 +167,7 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
   # have to divide the potential by px0)
   # Finally, in the potential, can use the same as before with x tilde, but need to scale the 
   # mean and the variance.
-  # Aslo, need to scale what is in front of the exponential
+  # Also, need to scale what is in front of the exponential
 
 
   t=torch.linspace(0,final_t,grid_size,requires_grad=True).reshape(-1,1)
@@ -243,6 +243,10 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
         head=d[l]
         # Get the corresponding initial condition
         initial_y=ic[l]
+
+        #REPARAM:
+        initial_y=initial_y*a/max_x
+        # initial_x=initial_x*a/max_x
         
         # Outputs
         x=head[:,0]
@@ -282,17 +286,18 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
           mu_y=mu_y*a/max_x
           sigma_tilde=a/max_x
 
-          # REPARAM
+          # REPARAM (added sigma tilde - note that we are dealing with MVN)
+          # Check, but we don't change the scaling outside the exponential!!
           # Building the potential and updating the partial derivatives
           potential=-(1/(2*math.pi))*torch.exp(-(1/(2*sigma_tilde**2))*((x-mu_x)**2+(y-mu_y)**2))
           # Partial wrt to x
-          partial_x+=-potential*(x-mu_x)
+          partial_x+=-potential*(x-mu_x)*(1/(*sigma_tilde**2))
           # Partial wrt to y
-          partial_y+=-potential*(y-mu_y)
+          partial_y+=-potential*(y-mu_y)*(1/(*sigma_tilde**2))
 
           # Updating the energy
-          H_0+=-(1/(2*math.pi))*math.exp(-(1/2)*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
-          H_curr+=-(1/(2*math.pi))*torch.exp(-(1/2)*((x-mu_x)**2+(y-mu_y)**2))
+          H_0+=-(1/(2*math.pi))*math.exp(-(1/(2*sigma_tilde**2))*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
+          H_curr+=-(1/(2*math.pi))*torch.exp(-(1/(2*sigma_tilde**2))*((x-mu_x)**2+(y-mu_y)**2))
 
         ## We can finally set the energy for head l
         H0_init[l]=H_0
@@ -417,10 +422,16 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
     uf=d2[m]
     # The x trajectory
     x_traj=uf[0]
+    # REPARAM
+    x_traj=x_traj*max_x/a
     # The y trjaectory
     y_traj=uf[1]
+    # REPARAM
+    y_traj=y_traj*max_x/a
     # The loss
     loss_=losses_part[m]
+
+    ### TO CONVERT BACK AS WELL
     
     ########## Saving to a file  #####################################
     # Saving the trajectories
