@@ -1,4 +1,5 @@
-
+# Strategy: Use potential 2, and copy the file form there. Make all the REPARAM
+# changes on that file too
 
 import torch
 import torch.nn as nn
@@ -88,9 +89,7 @@ class MyNetwork_Ray_Tracing(nn.Module):
 
 
 
-
 ### Numerical solver
-
 
 # Font sizes
 lineW = 3
@@ -101,6 +100,8 @@ plt.rc('font', **font)
 # plt.rcParams['text.usetex'] = True
 
 
+# REPARAM:
+# Let's not change this. We will sclae back and forth the NN solutions
 
 # Use below in the Scipy Solver   
 def f_general(u, t, means_Gaussians, lam=1, sig=1, A_=1):
@@ -136,6 +137,10 @@ def rayTracing_general(t, x0, y0, px0, py0, means_Gaussians, lam=1, sig=1, A_=1)
 
 
 # Code for training
+
+
+# REPARAM
+# Added a=1.1 and max_x=50
 
 def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51, 4.6], [8.78, 6.16]], alpha_=1, width_=40, width_heads=8, \
   epochs_=20000, grid_size=200, number_of_heads=1, PATH="models", print_legend=False, loadWeights=False, energy_conservation=True,\
@@ -246,7 +251,7 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
 
         #REPARAM:
         initial_y=initial_y*a/max_x
-        # initial_x=initial_x*a/max_x
+        initial_x=initial_x*a/max_x
         
         # Outputs
         x=head[:,0]
@@ -355,8 +360,7 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
         network2=copy.deepcopy(network)
         temp_loss=loss.item()
         individual_losses_saved=losses_part_current
-
-        
+   
   try:
     print('The best loss we achieved was:', temp_loss, 'at epoch', epoch_mini)
   except UnboundLocalError:
@@ -431,7 +435,8 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
     # The loss
     loss_=losses_part[m]
 
-    ### TO CONVERT BACK AS WELL
+    # REPARAM
+    # TO CONVERT BACK AS WELL WHEN PLOTTING!
     
     ########## Saving to a file  #####################################
     # Saving the trajectories
@@ -481,10 +486,16 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
 
   ######
 
-
   # Initial conditions for y
   Max=max(ic)
   Min=min(ic)
+
+  #REPARAM
+  Max=Max*a/max_x
+  Min=Min*a/max_x
+
+  # REPARAM
+  # TO CONVERT BACK AS WELL WHEN PLOTTING!
 
   ########## Saving ###########
   # Saving the initial conditions
@@ -522,8 +533,10 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
   f.close()
   ############################# 
 
+  # REPARAM
+  # Let's keep this as it is! (ie no rescaling)
 
-  # Initial posiiton and velocity
+  # Initial position and velocity
   x0, px0, py0 =  0, 1, 0.; 
   # Initial y position
   Y0 = ic
@@ -536,6 +549,10 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
   maximum_y=0
   minimum_y=0
   min_final=np.inf
+
+  # REPARAM
+  # Back to normal
+  t = np.linspace(0,final_t*tmax,Nt)
 
   for i in range(number_of_heads):
       print('The initial condition used is', Y0[i])
@@ -592,8 +609,6 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
       f.close()
       #############################
 
-
-
   y1=np.linspace(minimum_y-1,maximum_y+1,500); x1= np.linspace(-1,maximum_x,500)
   x, y = np.meshgrid(x1, y1)
   
@@ -643,6 +658,9 @@ def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51
   pickle.dump(y,f)
   f.close()
   #############################
+
+  # REPARAM:
+  # Let's not rescale anything there!
 
   V=0
   Vx=0
