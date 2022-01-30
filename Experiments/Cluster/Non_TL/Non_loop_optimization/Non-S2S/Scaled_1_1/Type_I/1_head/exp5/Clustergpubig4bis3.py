@@ -889,4 +889,4 @@ if __name__=='__main__':
  [6.54, 42.91],
  [45.65, 18.15],
  [27.99, 40.4]]
-  N_heads_run_Gaussiann(grid_size=1000, means=means_cell,final_t=30, width_=64, width_heads=32, epochs_=300)
+  N_heads_run_Gaussiann(grid_size=8000, means=means_cell,final_t=30, width_=64, width_heads=32, epochs_=80000)
