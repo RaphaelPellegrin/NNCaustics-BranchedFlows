@@ -1,3 +1,10 @@
+# Strategy: Use potential 2, and copy the file form there. Make all the REPARAM
+# changes on that file too
+
+# This one is slighly different
+# Rescaling the Numerical solver too
+
+# Pavlos also wanted me to save the loss at every time, not just the sum! 
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -86,9 +93,7 @@ class MyNetwork_Ray_Tracing(nn.Module):
 
 
 
-
 ### Numerical solver
-
 
 # Font sizes
 lineW = 3
@@ -99,6 +104,8 @@ plt.rc('font', **font)
 # plt.rcParams['text.usetex'] = True
 
 
+#REPARAM:
+# Let's change this. We will sclae back and forth the NN solutions too.
 
 # Use below in the Scipy Solver   
 def f_general(u, t, means_Gaussians, lam=1, sig=1, A_=1):
@@ -114,6 +121,19 @@ def f_general(u, t, means_Gaussians, lam=1, sig=1, A_=1):
     for i in means_Gaussians:
       muX1=i[0]
       muY1=i[1]
+
+      #REPARAM
+      # Added max_x and a
+      # Also scaling the means
+      max_x=50
+      a=1.1
+      muX1=muX1*a/max_x
+      muY1=muY1*a/max_x
+      sig=sig*a/max_x
+      # No rescaling of A
+
+      # DOUBLE CHECK THIS
+
       V+=  - A*np.exp(- (( (x-muX1)**2 + (y-muY1)**2) / sig**2)/2)
       Vx+= A*np.exp(- (( (x-muX1)**2 + (y-muY1)**2) / sig**2)/2) * (x-muX1)/sig**2 
       Vy+= A*np.exp(- (( (x-muX1)**2 + (y-muY1)**2) / sig**2)/2) * (y-muY1)/sig**2 
@@ -135,7 +155,11 @@ def rayTracing_general(t, x0, y0, px0, py0, means_Gaussians, lam=1, sig=1, A_=1)
 
 # Code for training
 
-def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.16]], alpha_=1, width_=40, width_heads=8, \
+
+#REPARAM
+# Added a=1.1 and max_x=50
+
+def N_heads_run_Gaussiann(initial_x=0, a=1.1, max_x=50, final_t=50, means=[[7.51, 4.6], [8.78, 6.16]], alpha_=1, width_=40, width_heads=8, \
   epochs_=20000, grid_size=200, number_of_heads=1, PATH="models", print_legend=False, loadWeights=False, energy_conservation=True,\
    norm_clipping=True):
   '''
@@ -152,6 +176,22 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   t0=time.time()
 
   # Set out tensor of times
+
+
+  #REPARAM
+  # p_x_0=1
+  # a is alpha in our discussion with Marios
+  tmax=max_x/a
+  final_t=final_t/tmax #(now this will be less than a=1.1)
+  # Now output of NN is x tilde, y tilde, px tilde, py tilde. So take derivative of x tilde
+  # and y tilde wrt to input t tilde. Needn't change anything.
+  # Also as px0 is 1, no need to change the last 2 Hamilton equations (otherwise, would just
+  # have to divide the potential by px0)
+  # Finally, in the potential, can use the same as before with x tilde, but need to scale the 
+  # mean and the variance.
+  # Also, need to scale what is in front of the exponential
+
+
   t=torch.linspace(0,final_t,grid_size,requires_grad=True).reshape(-1,1)
 
   # Number of epochs
@@ -204,18 +244,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   for k in range(number_of_heads):
     losses_part[k]=np.zeros(num_epochs)
 
-
-  #Seq2Seq
-  counter_seq2seq=1
-
   # For every epoch...
   for ne in range(num_epochs):
       optimizer.zero_grad()
       # Random sampling
-      # Seq2Seq
-      t=torch.rand(grid_size,requires_grad=True)*final_t*(counter_seq2seq/num_epochs)
-      # Seq2Seq
-      counter_seq2seq+=1
+      t=torch.rand(grid_size,requires_grad=True)*final_t
       t, ind=torch.sort(t)
       t[0]=0
       t=t.reshape(-1,1)
@@ -225,6 +258,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       loss=0
       # for saving the best loss (of individual heads) 
       losses_part_current={}
+      timed_losses={}
 
       # For each head...
       for l in range(number_of_heads):
@@ -232,6 +266,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         head=d[l]
         # Get the corresponding initial condition
         initial_y=ic[l]
+
+        #REPARAM:
+        initial_y=initial_y*a/max_x
+        initial_x=initial_x*a/max_x
+        # Now view the output as x tilde, y tilde, px tilde, py tilde
         
         # Outputs
         x=head[:,0]
@@ -251,6 +290,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         # Loss
         L1=((x_dot-px)**2).mean()
         L2=((y_dot-py)**2).mean()
+        # REQUESTED/IDEA FROM PAVLOS
+        L1_time=((x_dot-px)**2)
+        L2_time=((y_dot-py)**2)
+        timed_losses[1]=L1_time
+        timed_losses[2]=L2_time
 
         # For the other components of the loss, we need the potential V
         # and its derivatives
@@ -266,16 +310,28 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
           mu_x=means[i][0]
           mu_y=means[i][1]
 
-          # Building the potential and updating the partial derivatives
-          potential=-(1/(2*math.pi))*torch.exp(-(1/2)*((x-mu_x)**2+(y-mu_y)**2))
-          # Partial wrt to x
-          partial_x+=-potential*(x-mu_x)
-          # Partial wrt to y
-          partial_y+=-potential*(y-mu_y)
+          #REPARAM
+          mu_x=mu_x*a/max_x
+          mu_y=mu_y*a/max_x
+          sigma_tilde=a/max_x
 
+          # DOUBLE CHECK THAT AS WELL
+
+          # DON'T NORMALIZE INSIDE THE CODE
+
+          #REPARAM (added sigma tilde - note that we are dealing with MVN)
+          # Check, but we don't change the scaling outside the exponential!
+          # Building the potential and updating the partial derivatives
+          potential=-(1/(2*math.pi))*torch.exp(-(1/(2*sigma_tilde**2))*((x-mu_x)**2+(y-mu_y)**2))
+          # Partial wrt to x
+          partial_x+=-potential*(x-mu_x)*(1/(sigma_tilde**2))
+          # Partial wrt to y
+          partial_y+=-potential*(y-mu_y)*(1/(sigma_tilde**2))
+
+          #REPARAM: Again, here I have added sigma tilde. No need to change the scaling outside the exponential
           # Updating the energy
-          H_0+=-(1/(2*math.pi))*math.exp(-(1/2)*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
-          H_curr+=-(1/(2*math.pi))*torch.exp(-(1/2)*((x-mu_x)**2+(y-mu_y)**2))
+          H_0+=-(1/(2*math.pi))*math.exp(-(1/(2*sigma_tilde**2))*((initial_x-mu_x)**2+(initial_y-mu_y)**2))
+          H_curr+=-(1/(2*math.pi))*torch.exp(-(1/(2*sigma_tilde**2))*((x-mu_x)**2+(y-mu_y)**2))
 
         ## We can finally set the energy for head l
         H0_init[l]=H_0
@@ -283,6 +339,11 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         # Other components of the loss
         L3=((px_dot+partial_x)**2).mean()
         L4=((py_dot+partial_y)**2).mean()
+        # REQUESTED/IDEA FROM PAVLOS
+        L3_time=((px_dot+partial_x)**2)
+        L4_time=((py_dot+partial_y)**2)
+        timed_losses[3]=L3_time
+        timed_losses[4]=L4_time
 
         # Nota Bene: L1,L2,L3 and L4 are Hamilton's equations
 
@@ -296,6 +357,9 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
 
         # Could add the penalty that H is constant L9
         L9=((H_0-H_curr)**2).mean()
+        # REQUESTED/IDEA FROM PAVLOS
+        L9_time=((H_0-H_curr)**2)
+
         if not energy_conservation:
           # total loss
           loss+=L1+L2+L3+L4+L5+L6+L7+L8
@@ -333,8 +397,9 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         network2=copy.deepcopy(network)
         temp_loss=loss.item()
         individual_losses_saved=losses_part_current
-
-        
+        # REQUESTED/IDEA FROM PAVLOS
+        timed_losses_saved=timed_losses
+   
   try:
     print('The best loss we achieved was:', temp_loss, 'at epoch', epoch_mini)
   except UnboundLocalError:
@@ -392,6 +457,18 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f=open(filename,"wb")
   pickle.dump(losses_part,f)
   f.close()
+
+  # REQUESTED/IDEA FROM PAVLOS
+  # Saving the timed losses
+  filename = 'Initial_x_'+str(initial_x)+'final_t_'+str(final_t)+\
+  'alpha_'+ str(alpha_)+'width_'+str(width_)+'width_heads_'+str(width_heads)+\
+  'energyconservation_'+str(energy_conservation)+\
+  '_normclipping_'+str(norm_clipping)+'_'\
+  'epochs_'+str(epochs_)+'grid_size_'+str(grid_size)+'timed_losses_best_model'+'.p'
+  #os.mkdir(filename)
+  f=open(filename,"wb")
+  pickle.dump(timed_losses_saved,f)
+  f.close()
   #################################################################
 
   # Now plot the individual trajectories and the individual losses
@@ -400,10 +477,19 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     uf=d2[m]
     # The x trajectory
     x_traj=uf[0]
-    # The y trjaectory
+    # REPARAM 
+    # Now, we need to undo the transformation we did before
+    x_traj=x_traj*max_x/a
+    # The y trajectory
     y_traj=uf[1]
+    # REPARAM
+    # Now, we need to undo the transformation we did before 
+    y_traj=y_traj*max_x/a
     # The loss
     loss_=losses_part[m]
+
+    # REPARAM
+    # TO CONVERT BACK AS WELL WHEN PLOTTING!
     
     ########## Saving to a file  #####################################
     # Saving the trajectories
@@ -415,7 +501,9 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     'Trajectory_NN_x'+'.p'
     #os.mkdir(filename)
     f=open(filename,"wb")
-    pickle.dump(uf.cpu().detach()[:,0],f)
+    # REPARAM
+    # Now, we need to undo the transformation we did before
+    pickle.dump(uf.cpu().detach()[:,0]*max_x/a,f)
     f.close()
     # Saving the trajectories
     filename = 'Head_'+str(m)+'Initial_x_'+str(initial_x)+'final_t_'+\
@@ -426,7 +514,9 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     'Trajectory_NN_y'+'.p'
     #os.mkdir(filename)
     f=open(filename,"wb")
-    pickle.dump(uf.cpu().detach()[:,1],f)
+    # REPARAM
+    # Now, we need to undo the transformation we did before
+    pickle.dump(uf.cpu().detach()[:,1]*max_x/a,f)
     f.close()
     # Saving the trajectories
     filename = 'Head_'+str(m)+'Initial_x_'+str(initial_x)+'final_t_'+\
@@ -437,6 +527,8 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     'Trajectory_NN_px'+'.p'
     #os.mkdir(filename)
     f=open(filename,"wb")
+    # REPARAM
+    # px tilde =px/px0 where px0 is 1
     pickle.dump(uf.cpu().detach()[:,2],f)
     f.close()
     # Saving the trajectories
@@ -447,16 +539,24 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
     'epochs_'+str(epochs_)+'grid_size_'+str(grid_size)+'Trajectory_NN_py'+'.p'
     #os.mkdir(filename)
     f=open(filename,"wb")
+    # REPARAM
+    # py tilde = py/px_0 where px0 is 1
     pickle.dump(uf.cpu().detach()[:,3],f)
     f.close()
     ################################################################# 
 
   ######
 
-
   # Initial conditions for y
   Max=max(ic)
   Min=min(ic)
+
+  #REPARAM
+  Max=Max*a/max_x
+  Min=Min*a/max_x
+
+  # REPARAM
+  # TO CONVERT BACK AS WELL WHEN PLOTTING!
 
   ########## Saving ###########
   # Saving the initial conditions
@@ -467,12 +567,16 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   'epochs_'+str(epochs_)+'grid_size_'+str(grid_size)+'Initial_conditions'+'.p'
   #os.mkdir(filename)
   f=open(filename,"wb")
+  #REPARAM
+  # Note that here, they are on [0,50]x[0,50]. Not rescaled here
   pickle.dump(ic,f)
   f.close()
   ############################# 
 
   # define the time
   Nt=500
+  #REPARAM
+  # Note that here, final_t has been scaled down
   t = np.linspace(0,final_t,Nt)
 
   # For the comparaison between the NN solution and the numerical solution,
@@ -494,20 +598,29 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   f.close()
   ############################# 
 
+  # REPARAM
+  # Let's rescale this as well. Marios wants to rescale the numerical solutions as well.
 
-  # Initial posiiton and velocity
+  # Initial position and velocity
   x0, px0, py0 =  0, 1, 0.; 
   # Initial y position
   Y0 = ic
 
   Min=0
   Max=50
+  #REPARAM
+  Min=Min*a/max_x
+  Max=Max*a/max_x
 
   # Maximum and mim=nimum x at final time
   maximum_x=initial_x
   maximum_y=0
   minimum_y=0
   min_final=np.inf
+
+  #REPARAM
+  # Now final_t has been scaled down
+  t = np.linspace(0,final_t,Nt)
 
   for i in range(number_of_heads):
       print('The initial condition used is', Y0[i])
@@ -520,6 +633,10 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         minimum_y=min(y)
       if max(y)>maximum_y:
         maximum_y=max(y)
+
+
+      #REPARAM
+      # This has been scaled down. Need to scale back when plotting.
 
       ########## Saving ###########
       # Saving the (numerical trajectories)
@@ -564,7 +681,7 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
       f.close()
       #############################
 
-
+  #REPARAM TO FINISH BELOW (ONLY POTENTIAL)
 
   y1=np.linspace(minimum_y-1,maximum_y+1,500); x1= np.linspace(-1,maximum_x,500)
   x, y = np.meshgrid(x1, y1)
@@ -615,6 +732,10 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
   pickle.dump(y,f)
   f.close()
   #############################
+
+  #REPARAM:
+  # TO FINISH BELOW: Only potential
+
 
   V=0
   Vx=0
@@ -843,4 +964,4 @@ if __name__=='__main__':
  [6.54, 42.91],
  [45.65, 18.15],
  [27.99, 40.4]]
-  N_heads_run_Gaussiann(grid_size=30000, means=means_cell,final_t=30, width_=128, width_heads=64, epochs_=60000)
+  N_heads_run_Gaussiann(grid_size=1000, means=means_cell,final_t=30, width_=64, width_heads=32, epochs_=300)
