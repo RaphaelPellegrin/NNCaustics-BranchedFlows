@@ -1,0 +1,1 @@
+I was trying to scale the full problem by reparametrizing. It did not work. According to our experiments on the expoenntial vs rescaling the harmonic oscillator, this could be a bug (oscillator worked well) or not.
