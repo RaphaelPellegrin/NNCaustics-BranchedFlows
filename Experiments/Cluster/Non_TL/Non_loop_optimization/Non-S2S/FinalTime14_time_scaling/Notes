@@ -1,0 +1,1 @@
+This is where we scale the loss (or ccomponents of the loss) by exp(-2t)! This is way too much and so the points that come later on are weighted very little)
