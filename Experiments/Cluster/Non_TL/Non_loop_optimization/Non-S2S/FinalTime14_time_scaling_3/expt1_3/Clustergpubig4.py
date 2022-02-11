@@ -242,8 +242,8 @@ def N_heads_run_Gaussiann(initial_x=0, final_t=50, means=[[7.51, 4.6], [8.78, 6.
         py_dot=diff(py,t,1)
 
         # Loss
-        L1=((torch.exp(-t/60)*(x_dot-px))**2).mean()
-        L2=((torch.exp(-t/60)*(y_dot-py))**2).mean()
+        L1=((torch.exp(-t/100)*(x_dot-px))**2).mean()
+        L2=((torch.exp(-t/100)*(y_dot-py))**2).mean()
 
         # For the other components of the loss, we need the potential V
         # and its derivatives
@@ -836,4 +836,4 @@ if __name__=='__main__':
  [6.54, 42.91],
  [45.65, 18.15],
  [27.99, 40.4]]
-  N_heads_run_Gaussiann(grid_size=2000, means=means_cell,final_t=14, width_=64, width_heads=32, epochs_=50)
+  N_heads_run_Gaussiann(grid_size=2000, means=means_cell,final_t=40, width_=64, width_heads=32, epochs_=50000)
