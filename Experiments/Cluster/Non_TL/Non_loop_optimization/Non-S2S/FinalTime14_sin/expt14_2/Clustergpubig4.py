@@ -11,6 +11,7 @@ from scipy.integrate import odeint
 import random
 import pickle
 
+# Define the sin() activation function
 class mySin(torch.nn.Module):
     @staticmethod
     def forward(input):
@@ -68,7 +69,7 @@ class MyNetwork_Ray_Tracing(nn.Module):
         self.depth_body= depth_body
         self.number_dims = number_dims
         # Tanh activation function
-        self.nl = nn.mySin()
+        self.nl = mySin()
         self.lin1 = nn.Linear(1,number_dims)
         self.lin2 = nn.ModuleList([nn.Linear(number_dims, number_dims)])
         self.lin2.extend([nn.Linear(number_dims, number_dims) for i in range(depth_body-1)])
